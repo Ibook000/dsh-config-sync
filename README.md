@@ -39,14 +39,20 @@ Windows 上推、macOS/Linux 上拉是主要使用场景，如果快照内路径
 ## 安装
 
 ```powershell
-# 在本目录下（插件源码目录）
-dsh plugin --profile web add .
+dsh plugin --profile web add github:Ibook000/dsh-config-sync
 ```
 
 装完**重启 DSH**。然后：
 
+- 设置页：**设置 → 「配置同步」**（可视化界面，见下）
 - 模型工具：`config_sync_status` / `config_sync_push` / `config_sync_pull`
 - 人类命令：`/sync status` · `/sync push` · `/sync pull` · `/sync pull!`
+
+> 本插件**自己也会被同步**，记录形式是
+> `"dsh-config-sync": "github:Ibook000/dsh-config-sync"` —— 可移植，
+> 新机器 `dsh plugin install` 会连同它一起装上。
+> （早期版本曾记录成 `link:F:/temp/...`，换机器必然失败；现已加回归守卫，
+> 见「测试」一节。）
 
 ## 用法
 
@@ -200,12 +206,12 @@ node bin/git-sync.mjs pull --confirm    # 真正应用（先自动备份）
 ## 测试
 
 ```powershell
-node test/roundtrip.mjs      # 宿主半边：93 项
+node test/roundtrip.mjs      # 宿主半边：94 项
 node test/client-render.mjs  # 客户端 bundle：29 项（在 vm 里真实执行并渲染）
 node test/boot-order.mjs     # 启动顺序：7 项
 ```
 
-宿主 93 项覆盖：注册形状、push/pull 往返、diff 只报真实变化、
+宿主 94 项覆盖：注册形状、push/pull 往返、diff 只报真实变化、
 `node_modules` 与会话/日志绝不入快照、密钥默认不外泄（含全目录内容扫描）、
 密钥 opt-in、越界拒绝、`/sync` 四个分支、HTTP 桥接（同源校验 / 405 / 设置校验 /
 调度器按间隔跳过）、client bundle 契约。
@@ -217,7 +223,7 @@ node test/boot-order.mjs     # 启动顺序：7 项
 启动顺序 7 项用一个「延迟提供服务」的假 context，模拟 `webServer` / `timer`
 在 `apply()` **之后**才挂载的真实时序。
 
-## 三个踩过的坑（都已成为回归测试）
+## 四个踩过的坑（都已成为回归测试）
 
 这些都是**装上去才暴露**的问题，各留了一条测试防止复发。
 
@@ -260,6 +266,33 @@ factory: (require) => {
 `ERR_AMBIGUOUS_MODULE_SYNTAX`：Node 会把「`exports.x = …` + 源码里出现 `await`」
 判定为模块格式歧义**并拒绝执行**，即使那些 `await` 全在函数体内。
 浏览器里没有模块格式概念，所以这纯粹是测试侧的坑。
+
+### ④ 插件记录了自己，但记录的是本机绝对路径
+
+安装本插件时用的是 `dsh plugin --profile web add .`，于是依赖被写成：
+
+```json
+"dsh-config-sync": "link:F:/temp/新建文件夹/dsh-config-sync"
+```
+
+这一行会随配置一起同步到新机器，而那里没有 `F:\temp\...`，
+`dsh plugin install` 直接失败——**同步插件自己把同步搞坏了**。
+
+修法是改成可移植规格（GitHub 仓库）：
+
+```json
+"dsh-config-sync": "github:Ibook000/dsh-config-sync"
+```
+
+并加了一条回归守卫，断言快照里的任何依赖都不得使用
+`link:` / `file:` / `portal:` / 盘符绝对路径 / 相对路径：
+
+```js
+check('no dependency pins a machine-local path', machineLocal.length === 0, …)
+```
+
+已用真实形态验证过守卫会失败（`link:F:/…`、`file:../plugin`、`F:\temp\plugin`、
+`portal:./x` 全部被判定为机器相关；`^0.4.28`、`github:…`、`https://…` 通过）。
 
 ### 一个值得记下的诊断教训
 
