@@ -363,7 +363,25 @@ console.log('\n[11] HTTP bridge / settings / scheduler')
     hostSrc.includes("ctx.inject(['webServer']") && !hostSrc.includes("ctx.get('webServer')"))
   check('scheduler waits for timer via ctx.inject (not ctx.get)',
     hostSrc.includes("ctx.inject(['timer']") && !hostSrc.includes("ctx.get('timer')"))
+  // Regression guard: every dependency recorded in the snapshot must be
+  // installable on ANOTHER machine. A `link:`/`file:`/drive-letter spec pins an
+  // absolute path that only exists here, so `dsh plugin install` on the target
+  // fails and the whole restore aborts. This plugin itself shipped as
+  // `link:F:/temp/...` once, which is exactly what this asserts against.
+  const manifestText = await readFile(join(pdir, 'package.json'), 'utf8')
+  const manifestJson = JSON.parse(manifestText)
+  const machineLocal = []
+  for (const [name, spec] of Object.entries(manifestJson.dependencies ?? {})) {
+    if (typeof spec !== 'string') continue
+    if (/^(link|file|portal):/i.test(spec) || /^[A-Za-z]:[\\/]/.test(spec) || spec.startsWith('..')) {
+      machineLocal.push(`${name}=${spec}`)
+    }
+  }
+  check('no dependency pins a machine-local path', machineLocal.length === 0, machineLocal.join(', '))
+
   const statusResult = await call('/status')
+
+
   check('GET /status returns ok', statusResult.status === 200 && statusResult.json.ok === true)
   check('/status reports default settings', statusResult.json.settings.autoSync === false)
   check('/status lists intervals', Array.isArray(statusResult.json.intervals) && statusResult.json.intervals.length === 5)
