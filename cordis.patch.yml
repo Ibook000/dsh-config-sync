@@ -1,0 +1,36 @@
+# dsh-config-sync — sync a DSH configuration through a plain folder.
+#
+# Only the *recipe* travels: settings.yaml, each profile's package.json (plugin
+# manifest + bundle layer list), cordis.patch.yml (your overrides),
+# pnpm-workspace.yaml (build allowlist) and the lockfile. The ~313 MB of
+# node_modules is deliberately left behind — `dsh plugin --profile <name>
+# install` rebuilds it from that recipe on the other machine.
+#
+# Point syncRoot at any folder that already syncs itself — a Git working copy,
+# a OneDrive / Dropbox / 坚果云 directory, or a network share — and let that
+# tool own the transport. This plugin speaks no network protocol on purpose.
+#
+# Secrets are excluded unless includeSecrets is turned on. `~/.dsh/.credentials.yaml`
+# holds live account tokens, so enabling it is a deliberate choice, not a default.
+#
+# The settings page (Settings → 配置同步 / Config Sync) drives push/pull and
+# automatic sync; its own settings live in `dsh-config-sync.settings.json`
+# INSIDE the sync root, so your cadence travels with the snapshot.
+- insert:
+    - id: config-sync
+      name: dsh-config-sync
+      config:
+        # Where the synced copy lives. Defaults to $DSH_HOME/config-sync.
+        syncRoot: !!js dshHomePath('config-sync')
+        # Profile whose plugin stack is included; omit to auto-detect.
+        profile: web
+        # Never synced by default: .credentials.yaml carries live tokens.
+        includeSecrets: false
+        # Include pnpm-lock.yaml so the other machine reproduces exact versions.
+        includeLockfile: true
+        # Local safety snapshots kept before each apply.
+        backupRetention: 10
+        # Arm the background auto-sync scheduler. The switch that actually
+        # enables it lives on the settings page; set this to false to disable
+        # the scheduler entirely for this machine.
+        autoSyncScheduler: true

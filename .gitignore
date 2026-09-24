@@ -1,0 +1,15 @@
+# Dependencies are never committed: a DSH plugin ships source, and the profile
+# rebuilds its own dependency tree from package.json.
+node_modules/
+.pnpm-store/
+
+# Test scratch space (fixtures are created under the OS temp dir, but a run may
+# leave archives or logs beside the tests).
+test/.tmp/
+*.log
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,46 @@
+{
+  "name": "dsh-config-sync",
+  "version": "0.1.0",
+  "description": "Lightweight DeepSeek Harness configuration sync: move your settings, plugin manifest, patch layer and build allowlist between machines through a plain folder (Git / OneDrive / Dropbox / network share), without touching node_modules or secrets.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "config",
+    "sync",
+    "backup",
+    "migration"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ibook000/dsh-config-sync.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node test/roundtrip.mjs && node test/client-render.mjs && node test/boot-order.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}
